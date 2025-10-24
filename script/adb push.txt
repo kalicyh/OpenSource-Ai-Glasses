@@ -25,8 +25,6 @@
 ./adb push .\ffmpeg ./usr/bin
 ./adb shell "chmod +x /usr/bin/ffmpeg"
 
-./adb push .\expect\bin\tclsh8.4 /usr/bin
-
 ./adb push .\FFlaunch ./usr/bin
 ./adb shell "chmod +x /usr/bin/FFlaunch"
 
@@ -35,5 +33,14 @@
 ./adb push .\expect\lib\libtcl8.4.so /usr/lib
 ./adb push .\expect\bin\expect /usr/bin
 ./adb push .\expect\bin\tclsh8.4 /usr/bin
+./adb shell "chmod +x /usr/bin/expect"
 
-ps | grep -v '\['#显示进程
+./adb push .\ai_media_service ./usr/bin
+./adb shell "chmod +x /usr/bin/ai_media_service"
+
+./adb shell "mkdir /userdata/Rec"
+
+./adb shell "reboot"
+
+#ps | grep -v '\['
+#显示进程
