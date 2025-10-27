@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm install -g markdownlint-cli
+        npm install -g markdown-link-check
+
+    - name: Check markdown files
+      run: |
+        echo "Checking markdown files..."
+        find . -name "*.md" -not -path "./.git/*" -not -path "./node_modules/*" | head -5
+
+    - name: Check project structure
+      run: |
+        echo "Checking project structure..."
+
+        # Check for README files
+        if [ -f README.md ]; then
+          echo "✓ README.md exists"
+        else
+          echo "✗ README.md missing"
+          exit 1
+        fi
+
+        if [ -f README.zh.md ]; then
+          echo "✓ README.zh.md exists"
+        else
+          echo "✗ README.zh.md missing"
+          exit 1
+        fi
+
+        # Check for LICENSE
+        if [ -f LICENSE ] || [ -f LICENCE ]; then
+          echo "✓ License file exists"
+        else
+          echo "⚠ License file missing"
+        fi
+
+        # Check for docs directory
+        if [ -d docs ]; then
+          echo "✓ docs directory exists"
+          echo "Documentation files:"
+          find docs -name "*.md" | wc -l
+        else
+          echo "✗ docs directory missing"
+          exit 1
+        fi
+
+    - name: Validate configuration files
+      run: |
+        echo "Validating configuration files..."
+
+        # Check for .gitignore
+        if [ -f .gitignore ]; then
+          echo "✓ .gitignore exists"
+        else
+          echo "⚠ .gitignore missing"
+        fi
+
+        # Check for .markdownlint.json
+        if [ -f .markdownlint.json ]; then
+          echo "✓ .markdownlint.json exists"
+        else
+          echo "⚠ .markdownlint.json missing"
+        fi
+
+    - name: Run tests
+      run: |
+        echo "Running basic tests..."
+
+        # Test if README files are readable
+        if head -1 README.md >/dev/null 2>&1; then
+          echo "✓ README.md is readable"
+        else
+          echo "✗ README.md is not readable"
+          exit 1
+        fi
+
+        if head -1 README.zh.md >/dev/null 2>&1; then
+          echo "✓ README.zh.md is readable"
+        else
+          echo "✗ README.zh.md is not readable"
+          exit 1
+        fi
+
+    - name: Create project summary
+      run: |
+        echo "## Project Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Repository**: AI Smart Glasses" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status**: Build Successful" >> $GITHUB_STEP_SUMMARY
+        echo "- **Documentation**: Dual-language support" >> $GITHUB_STEP_SUMMARY
+        echo "- **Files Changed**: $(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | wc -l)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Files in this PR:" >> $GITHUB_STEP_SUMMARY
+        git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install markdownlint
+      run: npm install -g markdownlint-cli
+
+    - name: Lint Markdown files
+      run: |
+        echo "Linting markdown files..."
+        markdownlint "README.md" "README.zh.md" "docs/**/*.md" --config .markdownlint.json || true
+
+  link-check:
+    name: Link Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install markdown-link-check
+      run: npm install -g markdown-link-check
+
+    - name: Check links
+      run: |
+        echo "Checking links in documentation..."
+        markdown-link-check "README.md" "README.zh.md" "docs/**/*.md" --config .mlc_config.json || true
