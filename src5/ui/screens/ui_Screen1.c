@@ -543,6 +543,96 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_font(ui_TeleprompterText, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui_TeleprompterText, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    // 在Menu3中创建备忘录圆角矩形
+    lv_obj_t *ui_MemoRect = lv_obj_create(ui_Menu3);
+    lv_obj_set_width(ui_MemoRect, 80);
+    lv_obj_set_height(ui_MemoRect, 80);
+    lv_obj_set_x(ui_MemoRect, 219);
+    lv_obj_set_y(ui_MemoRect, -80);
+    lv_obj_set_align(ui_MemoRect, LV_ALIGN_CENTER);
+    
+    // 设置圆角矩形样式
+    lv_obj_set_style_radius(ui_MemoRect, 12, LV_PART_MAIN | LV_STATE_DEFAULT);  // 增大圆角到12像素
+    lv_obj_set_style_bg_color(ui_MemoRect, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);  // 黑色背景（空心效果）
+    lv_obj_set_style_bg_opa(ui_MemoRect, 0, LV_PART_MAIN | LV_STATE_DEFAULT);  // 背景透明（空心效果）
+    lv_obj_set_style_border_width(ui_MemoRect, 4, LV_PART_MAIN | LV_STATE_DEFAULT);  // 4像素边框
+    lv_obj_set_style_border_color(ui_MemoRect, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);  // 白色边框
+    lv_obj_set_style_border_opa(ui_MemoRect, 255, LV_PART_MAIN | LV_STATE_DEFAULT);  // 边框不透明
+    
+    // 移除默认的滚动标志
+    lv_obj_clear_flag(ui_MemoRect, LV_OBJ_FLAG_SCROLLABLE);
+
+    // 创建√符号的第一条斜线（左下到右上）
+    lv_obj_t *ui_CheckLine1 = lv_line_create(ui_MemoRect);
+    static lv_point_t check_line1_points[] = {{6, 26}, {25, 50}};
+    lv_line_set_points(ui_CheckLine1, check_line1_points, 2);
+    lv_obj_set_x(ui_CheckLine1, -10);
+    lv_obj_set_y(ui_CheckLine1, -10);
+    lv_obj_set_style_line_width(ui_CheckLine1, 4, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_color(ui_CheckLine1, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_opa(ui_CheckLine1, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // 创建√符号的第二条斜线（右上到右下）
+    lv_obj_t *ui_CheckLine2 = lv_line_create(ui_MemoRect);
+    static lv_point_t check_line2_points[] = {{25, 50}, {62, 16}};
+    lv_line_set_points(ui_CheckLine2, check_line2_points, 2);
+    lv_obj_set_x(ui_CheckLine2, -10);
+    lv_obj_set_y(ui_CheckLine2, -10);
+    lv_obj_set_style_line_width(ui_CheckLine2, 4, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_color(ui_CheckLine2, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_line_opa(ui_CheckLine2, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    // 创建备忘录文字标签
+    lv_obj_t *ui_MemoText = lv_label_create(ui_Menu3);
+    lv_obj_set_width(ui_MemoText, 600);  /// 设置固定宽度，为自动换行做准备
+    lv_obj_set_height(ui_MemoText, LV_SIZE_CONTENT);   /// 高度自适应内容
+    lv_obj_set_align(ui_MemoText, LV_ALIGN_TOP_LEFT);
+    lv_label_set_text(ui_MemoText, "备忘录");
+    lv_obj_set_pos(ui_MemoText, 508-32, 239);  // 位置和ui_TeleprompterText一样
+    lv_obj_set_style_text_font(ui_MemoText, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_MemoText, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    // 在Menu3中创建一个竖直圆角矩形（居中对齐），参考录像机矩形样式
+    lv_obj_t *ui_Menu3CenterRect = lv_obj_create(ui_Menu3);
+    lv_obj_set_width(ui_Menu3CenterRect, 8);
+    lv_obj_set_height(ui_Menu3CenterRect, 60);
+    lv_obj_set_x(ui_Menu3CenterRect, 0);
+    lv_obj_set_y(ui_Menu3CenterRect, -80);
+    lv_obj_set_align(ui_Menu3CenterRect, LV_ALIGN_CENTER);
+    // 样式与录像机矩形一致：空心、白边、黑底透明
+    lv_obj_set_style_radius(ui_Menu3CenterRect, 12, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_Menu3CenterRect, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Menu3CenterRect, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_Menu3CenterRect, 4, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Menu3CenterRect, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_opa(ui_Menu3CenterRect, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_Menu3CenterRect, LV_OBJ_FLAG_SCROLLABLE);
+
+    // 在Menu3中创建一个横向圆角矩形（与上面的竖直矩形组成十字）
+    lv_obj_t *ui_Menu3CenterRectH = lv_obj_create(ui_Menu3);
+    lv_obj_set_width(ui_Menu3CenterRectH, 60);
+    lv_obj_set_height(ui_Menu3CenterRectH, 8);
+    lv_obj_set_x(ui_Menu3CenterRectH, 0);
+    lv_obj_set_y(ui_Menu3CenterRectH, -80);
+    lv_obj_set_align(ui_Menu3CenterRectH, LV_ALIGN_CENTER);
+    lv_obj_set_style_radius(ui_Menu3CenterRectH, 12, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_Menu3CenterRectH, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Menu3CenterRectH, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_Menu3CenterRectH, 4, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(ui_Menu3CenterRectH, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_opa(ui_Menu3CenterRectH, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_clear_flag(ui_Menu3CenterRectH, LV_OBJ_FLAG_SCROLLABLE);
+
+    // 在Menu3中创建“更多”文字标签（中列位置）
+    lv_obj_t *ui_MoreText = lv_label_create(ui_Menu3);
+    lv_obj_set_width(ui_MoreText, LV_SIZE_CONTENT);
+    lv_obj_set_height(ui_MoreText, LV_SIZE_CONTENT);
+    lv_obj_set_align(ui_MoreText, LV_ALIGN_TOP_LEFT);
+    lv_obj_set_pos(ui_MoreText, 280-10, 239);
+    lv_label_set_text(ui_MoreText, "更多");
+    lv_obj_set_style_text_font(ui_MoreText, &ui_font_alibaba_48, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_MoreText, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+
     // 创建圆角矩形，电池图标
     ui_RoundedRect = lv_obj_create(ui_Menu1);
     lv_obj_set_width(ui_RoundedRect, 21);  // 宽度：85-62=23

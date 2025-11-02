@@ -304,6 +304,8 @@ void* display_update_thread(void* arg) {
                 Not_Add_To_TextContainer = false;
                 if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
                 if (ui_Menu3) lv_obj_clear_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                if (ui_TextContainer) lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
+                if (ui_Menu1) lv_obj_add_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN); // 新增，避免层叠干扰
                 lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
                 hide_smile_flag = true;
             }
@@ -435,6 +437,13 @@ void* display_update_thread(void* arg) {
             else if (strcmp(shared_memory, "TurnRighT") == 0) {//显示右转图标
             }
             else if (strcmp(shared_memory, "GoStraighT") == 0) {//显示直行图标
+            }
+            else if (strcmp(shared_memory, "MeMo") == 0) {//显示备忘录
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+
+
             }
             // 处理其他显示内容
             else if (strcmp(shared_memory, "init") != 0) {
