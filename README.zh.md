@@ -24,7 +24,7 @@
 
 - 🖥️ **显示**: 30°FOV 640×480单色单目显示（选配）
 - 📸 **摄像头**: 4K拍照1080P录像
-- 🔊 **音频**: 双麦克风+扬声器
+- 🔊 **音频**: 麦克风+扬声器
 - 📡 **连接**: WiFi、蓝牙5.0、USB 2.0
 - ⚡ **性能**: 单Cortex-A7核，32GB存储
 - 🔋 **续航**: 听歌3小时，显示4小时，录像45分钟
@@ -38,35 +38,21 @@
 
 - Linux开发环境（推荐Ubuntu 20.04+）
 - Git和基础开发工具
-- USB-C数据线连接设备
+- USB数据线连接设备
 
 ### 安装
 
 ```bash
 # 克隆仓库
-git clone https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses.git
-cd OpenSource-Ai-Glasses
-
-# 设置开发环境
-./scripts/setup-dev.sh
-
-# 刷写固件
-./scripts/flash-firmware.sh
-
-# 验证安装
-./scripts/verify-installation.sh
+待完善
 ```
 
 ### Hello World
 
 ```bash
 # 通过ADB连接设备
-adb connect [设备IP]
+adb shell
 
-# 运行Hello World应用
-adb shell /opt/apps/hello-world
-
-# 预期输出: "Hello AI Glasses!"
 ```
 
 ## 📊 硬件规格
@@ -172,25 +158,7 @@ adb shell /opt/apps/hello-world
 
 ```mermaid
 graph TD
-    A[应用层] --> B[API层]
-    B --> C[服务层]
-    C --> D[硬件驱动]
-    D --> E[Linux内核]
-    E --> F[硬件层]
-
-    G[WiFi] --> D
-    H[蓝牙] --> D
-    I[USB] --> D
-    J[显示] --> D
-    K[摄像头] --> D
-    L[音频] --> D
-
-    style A fill:#e3f2fd
-    style B fill:#f3e5f5
-    style C fill:#e8f5e8
-    style D fill:#fff3e0
-    style E fill:#fce4ec
-    style F fill:#f1f8e9
+待完善
 ```
 
 ## 📚 文档
@@ -208,46 +176,17 @@ graph TD
 
 ```bash
 # 安装依赖
-sudo apt-get update
-sudo apt-get install build-essential git cmake
-
-# 克隆并构建
-git clone https://github.com/Iam5stillLearning/OpenSource-Ai-Glasses.git
-cd OpenSource-Ai-Glasses
-mkdir build && cd build
-cmake ..
-make -j4
-
-# 刷写到设备
-sudo make flash
+待完善
 ```
 
 ### 开发工具
 
 - **IDE**: VS Code with C/C++ extension
-- **调试器**: GDB + OpenOCD
-- **性能分析**: perf, valgrind
-- **版本控制**: Git
 
 ### API概述
 
 ```c
-#include "ai_glasses_api.h"
-
-// 初始化设备
-int device_init(device_config_t *config);
-
-// 拍照
-int capture_photo(const char *filename);
-
-// 显示文本
-int display_text(const char *text, int x, int y);
-
-// 播放音频
-int play_audio(const char *filename);
-
-// 获取传感器数据
-int get_sensor_data(sensor_data_t *data);
+待完善
 ```
 
 ## 🤝 贡献
