@@ -9,6 +9,7 @@
 ./adb shell "ln -sf /etc/init.d/S99wifi /etc/rcS.d/S99wifi"
 ./adb push .\expect.sh /oem/usr/
 ./adb shell "chmod +x /oem/usr/expect.sh"
+./adb push .\yuqian.wav ./
 
 ./adb push .\ai_client_socket ./usr/bin
 ./adb shell "chmod +x ./usr/bin/ai_client_socket"

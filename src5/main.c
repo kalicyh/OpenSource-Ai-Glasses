@@ -55,6 +55,22 @@ extern lv_obj_t *ui_VideoRecordingContainer;
 // 提词器相关UI对象
 extern lv_obj_t *ui_TeleprompTerContainer;
 extern lv_obj_t *ui_TeleprompTerTxT;
+// Menu3文字标签
+extern lv_obj_t *ui_MemoText;
+extern lv_obj_t *ui_MoreText;
+extern lv_obj_t *ui_RecordText;
+// subMenu容器
+extern lv_obj_t *ui_subMenu;
+// subMenu文字标签
+extern lv_obj_t *ui_SubMenu_Translate;
+extern lv_obj_t *ui_SubMenu_Navigation;
+extern lv_obj_t *ui_SubMenu_DisplayImage;
+extern lv_obj_t *ui_SubMenu_ASR;
+extern lv_obj_t *ui_SubMenu_Sleep;
+extern lv_obj_t *ui_SubMenu_Personalize;
+extern lv_obj_t *ui_SubMenu_Attitude;
+extern lv_obj_t *ui_SubMenu_Exit;
+extern lv_obj_t *ui_SubMenu_Rect;
 volatile bool hide_smile_flag = false;  // 线程安全标志位
 static int image_saved = 0;
 int spi_file;
@@ -76,6 +92,10 @@ static char last_displayed_message[BUFFER_SIZE] = {0};  // 上次显示的消息
 // 提词器相关变量
 static int teleprompter_read_position = 0;  // 当前读取位置（已读字符数）
 static char teleprompter_buffer[301] = {0};  // 存储读取的文本（100个汉字 + 1个结束符）
+
+// 备忘录相关变量
+static int memo_read_position = 0;  // 当前读取位置（已读字符数）
+static char memo_buffer[301] = {0};  // 存储读取的文本（100个汉字 + 1个结束符）
 
 // 省电功能相关变量
 volatile bool display_power_save_mode = false;  // 省电模式标志
@@ -168,6 +188,56 @@ static inline void wake_display_and_touch_activity(void) {
         display_power_save_mode = false;
     }
     last_activity_time = time(NULL);  // 统一更新最后活动时间
+}
+
+// 读取文件并显示到容器的通用函数
+static void read_and_display_file(const char* filepath, int* read_position, char* buffer, const char* error_msg) {
+    // 先清空控件之前的文本
+    if (ui_TeleprompTerTxT != NULL) {
+        lv_label_set_text(ui_TeleprompTerTxT, "");
+    }
+    
+    FILE *file = fopen(filepath, "r");
+    if (file != NULL) {
+        // 跳过已读的字符
+        Not_Add_To_TextContainer = false;
+        hide_smile_flag = true;
+        fseek(file, *read_position, SEEK_SET);
+        if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+        
+        // 读取100个汉字（300个字节，因为UTF-8编码下1个汉字占3个字节）
+        size_t bytes_read = fread(buffer, 1, 300, file);
+        buffer[bytes_read] = '\0';  // 确保字符串结束
+        
+        // 检查是否到达文件末尾
+        if (bytes_read < 300) {
+            // 文件读取完毕，重置读取位置到开头
+            *read_position = 0;
+        } else {
+            // 更新读取位置
+            *read_position += bytes_read;
+        }
+        
+        fclose(file);
+        
+        // 显示读取的文本
+        if (ui_TeleprompTerTxT != NULL) {
+            lv_label_set_text(ui_TeleprompTerTxT, buffer);
+        }
+        printf("\n\nbuffer: %s\n\n", buffer);
+        // 显示容器
+        if (ui_TeleprompTerContainer != NULL) {
+            lv_obj_clear_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);
+        }
+    } else {
+        // 文件打开失败，显示错误信息
+        if (ui_TeleprompTerTxT != NULL) {
+            lv_label_set_text(ui_TeleprompTerTxT, error_msg);
+        }
+        if (ui_TeleprompTerContainer != NULL) {
+            lv_obj_clear_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
 }
 
 // 显示更新线程：监听共享内存变化
@@ -274,6 +344,7 @@ void* display_update_thread(void* arg) {
                 if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
                 //显示状态信息和亮度
                 lv_obj_add_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);//设置提词器隐藏
+                lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);//隐藏Menu3容器
             }
             else if (strcmp(shared_memory, "BLE DissCon") == 0){
                 wake_display_and_touch_activity();
@@ -308,6 +379,18 @@ void* display_update_thread(void* arg) {
                 if (ui_Menu1) lv_obj_add_flag(ui_Menu1, LV_OBJ_FLAG_HIDDEN); // 新增，避免层叠干扰
                 lv_obj_add_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
                 hide_smile_flag = true;
+                
+                // 调整文字标签位置：RecorDeR收到后变成227，另外两个变成239
+                if (ui_RecordText != NULL) {
+                    lv_obj_set_pos(ui_RecordText, 60-10, 227);
+                }
+                if (ui_MemoText != NULL) {
+                    lv_obj_set_pos(ui_MemoText, 508-32, 239);
+                }
+                if (ui_MoreText != NULL) {
+                    lv_obj_set_pos(ui_MoreText, 280-10, 239);
+                }
+                lv_obj_add_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);//设置提词器隐藏
             }
             //还要新增图片显示、议程、大小字个性化设置
             
@@ -324,6 +407,7 @@ void* display_update_thread(void* arg) {
                 if (ui_AiTalkLine) lv_obj_add_flag(ui_AiTalkLine, LV_OBJ_FLAG_HIDDEN);
                 // 隐藏录像机容器
                 if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
+                lv_label_set_text(ui_StatusLabel,"  ");
             }
             else if (strcmp(shared_memory, "BLE:AlbumSync") == 0) {
                 wake_display_and_touch_activity();
@@ -339,6 +423,31 @@ void* display_update_thread(void* arg) {
                     lv_label_set_text(ui_CameraText, "保存");
                 //}
             }    
+            else if (strcmp(shared_memory, "RecorDeRworking") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                lv_label_set_text(ui_RecordText, "录音中");
+            }
+            else if (strcmp(shared_memory, "RecorDeR-End") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                lv_label_set_text(ui_RecordText, "录音");
+            }
+            else if (strcmp(shared_memory, "TranslatE-ON") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                lv_label_set_text(ui_StatusLabel, "请打开手机APP");
+            }  
+            else if (strcmp(shared_memory, "NavigaT-ON") == 0) {
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                //需要打开电话簿
+                lv_label_set_text(ui_StatusLabel, " ");
+            }  
             else if (strcmp(shared_memory, "TelePrompTer") == 0) {
                 wake_display_and_touch_activity();
                 Not_Add_To_TextContainer = false;
@@ -359,54 +468,8 @@ void* display_update_thread(void* arg) {
             else if (strcmp(shared_memory, "TelePrompTerNextParagraph") == 0) {
                 // 读取提词器文本文件
                 wake_display_and_touch_activity();
-                
-                // 先清空控件之前的文本
-                if (ui_TeleprompTerTxT != NULL) {
-                    lv_label_set_text(ui_TeleprompTerTxT, "");
-                }
-                
-                FILE *file = fopen("/usr/bin/TeleprompTer.txt", "r");
-                if (file != NULL) {
-                    // 跳过已读的字符
-                    Not_Add_To_TextContainer = false;
-                    hide_smile_flag = true;
-                    fseek(file, teleprompter_read_position, SEEK_SET);
-                    if (ui_VideoContainer) lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);
-                    
-                    // 读取100个汉字（300个字节，因为UTF-8编码下1个汉字占3个字节）
-                    size_t bytes_read = fread(teleprompter_buffer, 1, 300, file);
-                    teleprompter_buffer[bytes_read] = '\0';  // 确保字符串结束
-                    
-                    // 检查是否到达文件末尾
-                    if (bytes_read < 300) {
-                        // 文件读取完毕，重置读取位置到开头
-                        teleprompter_read_position = 0;
-                    } else {
-                        // 更新读取位置
-                        teleprompter_read_position += bytes_read;
-                    }
-                    
-                    fclose(file);
-                    
-                    // 显示读取的文本
-                    if (ui_TeleprompTerTxT != NULL) {
-                        lv_label_set_text(ui_TeleprompTerTxT, teleprompter_buffer);
-                    }
-                    
-                    // 显示提词器容器
-                    if (ui_TeleprompTerContainer != NULL) {
-                        lv_obj_clear_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);
-                    }
-                } else {
-                    // 文件打开失败，显示错误信息
-                    //printf("No\n");
-                    if (ui_TeleprompTerTxT != NULL) {
-                        lv_label_set_text(ui_TeleprompTerTxT, "无法打开提词器文件");
-                    }
-                    if (ui_TeleprompTerContainer != NULL) {
-                        lv_obj_clear_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);
-                    }
-                }
+                read_and_display_file("/usr/bin/TeleprompTer.txt", &teleprompter_read_position, 
+                                      teleprompter_buffer, "无法打开提词器文件");
             }
             else if (strcmp(shared_memory, "FFmFinished") == 0) {
                 wake_display_and_touch_activity();
@@ -438,12 +501,245 @@ void* display_update_thread(void* arg) {
             }
             else if (strcmp(shared_memory, "GoStraighT") == 0) {//显示直行图标
             }
-            else if (strcmp(shared_memory, "MeMo") == 0) {//显示备忘录
+            else if (strcmp(shared_memory, "MeMo") == 0) {//备忘录被选定
                 wake_display_and_touch_activity();
                 Not_Add_To_TextContainer = false;
                 hide_smile_flag = true;
+                
+                // 隐藏ui_Label2
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_subMenu != NULL) {
+                    lv_obj_add_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 调整文字标签位置：MeMo收到后变成227，另外两个变成239
+                if (ui_MemoText != NULL) {
+                    lv_obj_set_pos(ui_MemoText, 508-32, 227);
+                }
+                if (ui_RecordText != NULL) {
+                    lv_obj_set_pos(ui_RecordText, 60-10, 239);
+                }
+                if (ui_MoreText != NULL) {
+                    lv_obj_set_pos(ui_MoreText, 280-10, 239);
+                }
+            }
+            else if (strcmp(shared_memory, "MeMoDisplay") == 0) {//备忘录显示出来
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                read_and_display_file("/usr/bin/memo.txt", &memo_read_position, 
+                                      memo_buffer, "无法打开备忘录文件");
+            }
+            else if (strcmp(shared_memory, "MoRe") == 0) {//子菜单被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                
+                // 调整文字标签位置：MoRe收到后变成227，另外两个变成239
+                if (ui_MoreText != NULL) {
+                    lv_obj_set_pos(ui_MoreText, 280-10, 227);
+                }
+                if (ui_MemoText != NULL) {
+                    lv_obj_set_pos(ui_MemoText, 508-32, 239);
+                }
+                if (ui_RecordText != NULL) {
+                    lv_obj_set_pos(ui_RecordText, 60-10, 239);
+                }
+            }
+            // subMenu相关命令处理
+            else if (strcmp(shared_memory, "TranslatE") == 0) {//翻译被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2和ui_Menu3
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_Menu3 != NULL) {
+                    lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 显示ui_subMenu
+                if (ui_subMenu != NULL) {
+                    lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+                
+                // 调整ui_SubMenu_Rect位置：X=69, Y=289
+                if (ui_SubMenu_Rect != NULL) {
+                    lv_obj_set_pos(ui_SubMenu_Rect, 69, 289);
+                }
+            }
+            else if (strcmp(shared_memory, "NavigaT") == 0) {//导航被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2和ui_Menu3
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_Menu3 != NULL) {
+                    lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 显示ui_subMenu
+                if (ui_subMenu != NULL) {
+                    lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+                
+                // 调整ui_SubMenu_Rect位置：X=269, Y=289
+                if (ui_SubMenu_Rect != NULL) {
+                    lv_obj_set_pos(ui_SubMenu_Rect, 269, 289);
+                }
+            }
+            else if (strcmp(shared_memory, "DisplayPhoto") == 0) {//显示图被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2和ui_Menu3
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_Menu3 != NULL) {
+                    lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 显示ui_subMenu
+                if (ui_subMenu != NULL) {
+                    lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+                
+                // 调整ui_SubMenu_Rect位置：X=471, Y=289
+                if (ui_SubMenu_Rect != NULL) {
+                    lv_obj_set_pos(ui_SubMenu_Rect, 471, 289);
+                }
+            }
+            else if (strcmp(shared_memory, "bd_ASR") == 0) {//ASR被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2和ui_Menu3
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_Menu3 != NULL) {
+                    lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 显示ui_subMenu
+                if (ui_subMenu != NULL) {
+                    lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+
+                if (ui_SubMenu_Rect != NULL) {
+                    lv_obj_set_pos(ui_SubMenu_Rect, 69, 174);
+                }
+            }
+            else if (strcmp(shared_memory, "SleeP") == 0) {//休眠被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 调整ui_SubMenu_Rect位置：X轴变为269，Y轴不变
+                if (ui_SubMenu_Rect != NULL) {
+                    lv_obj_set_pos(ui_SubMenu_Rect, 269, 174);
+                }
 
 
+                
+                // 隐藏ui_Label2和ui_Menu3
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_Menu3 != NULL) {
+                    lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 显示ui_subMenu
+                if (ui_subMenu != NULL) {
+                    lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+            }
+            else if (strcmp(shared_memory, "FontSize") == 0) {//个性化被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2和ui_Menu3
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_Menu3 != NULL) {
+                    lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 显示ui_subMenu
+                if (ui_subMenu != NULL) {
+                    lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+                
+                // 调整ui_SubMenu_Rect位置：Y轴变为471，X轴保持不变
+                if (ui_SubMenu_Rect != NULL) {
+                    lv_coord_t current_x = lv_obj_get_x(ui_SubMenu_Rect);
+                    lv_obj_set_pos(ui_SubMenu_Rect, 471, 174);
+                }
+            }
+            else if (strcmp(shared_memory, "QuiT") == 0) {//退出子菜单
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+
+                
+                // 调整ui_SubMenu_Rect位置：X=269, Y=410
+                if (ui_SubMenu_Rect != NULL) {
+                    lv_obj_set_pos(ui_SubMenu_Rect, 269, 410-100+48+48);
+                }
+            }
+            else if (strcmp(shared_memory, "QuiTed") == 0) {//退出子菜单
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_subMenu
+                if (ui_subMenu != NULL) {
+                    lv_obj_add_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+            }
+            else if (strcmp(shared_memory, "IntoSleep") == 0) {//关闭屏幕
+                send_cmd(SPI_DISPLAY_DISABLE);
+                send_cmd(SPI_SYNC);
+            }
+            else if (strcmp(shared_memory, "IMUtest") == 0) {//IMU测试被选定
+                wake_display_and_touch_activity();
+                Not_Add_To_TextContainer = false;
+                hide_smile_flag = true;
+                
+                // 隐藏ui_Label2和ui_Menu3
+                if (ui_Label2 != NULL) {
+                    lv_obj_add_flag(ui_Label2, LV_OBJ_FLAG_HIDDEN);
+                }
+                if (ui_Menu3 != NULL) {
+                    lv_obj_add_flag(ui_Menu3, LV_OBJ_FLAG_HIDDEN);
+                }
+                // 显示ui_subMenu
+                if (ui_subMenu != NULL) {
+                    lv_obj_clear_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);
+                }
+                
+                // 调整ui_SubMenu_Rect位置：X=69, Y=410
+                if (ui_SubMenu_Rect != NULL) {
+                    lv_obj_set_pos(ui_SubMenu_Rect, 69, 410);
+                }
             }
             // 处理其他显示内容
             else if (strcmp(shared_memory, "init") != 0) {
@@ -495,7 +791,8 @@ void* display_update_thread(void* arg) {
                 
                 // 显示普通文本内容时，确保文本容器可见并隐藏其它图标
                 if (ui_TextContainer) lv_obj_clear_flag(ui_TextContainer, LV_OBJ_FLAG_HIDDEN);
-                
+                lv_obj_add_flag(ui_TeleprompTerContainer, LV_OBJ_FLAG_HIDDEN);//设置提词器隐藏
+                lv_obj_add_flag(ui_subMenu, LV_OBJ_FLAG_HIDDEN);//设置子菜单隐藏
                 // 隐藏录像机容器（包含所有录像机组件）
                 if (ui_VideoContainer != NULL) {
                     lv_obj_add_flag(ui_VideoContainer, LV_OBJ_FLAG_HIDDEN);

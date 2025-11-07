@@ -332,6 +332,13 @@ static int handle_system_update(int client_fd, const char *update_filename, size
     if (received_bytes == update_size) {
         printf("✅ [UPDATE] 系统更新文件接收完成: %s (%zu 字节)\n", update_path, received_bytes);
         
+        // 添加可执行权限 (chmod +x)
+        if (chmod(update_path, 0755) == 0) {
+            printf("✅ [UPDATE] 已添加可执行权限: %s\n", update_path);
+        } else {
+            printf("⚠️  [UPDATE] 添加可执行权限失败: %s (%s)\n", update_path, strerror(errno));
+        }
+        
         // 发送确认消息
         socket_send_message(client_fd, MSG_UPDATE_ACK, NULL, 0);
         
@@ -398,8 +405,10 @@ static int scan_album_folder(const char *folder_path, char ***file_list, int *fi
         
         int is_jpg = (strcasecmp(dot, ".jpg") == 0);
         int is_h264 = (strcasecmp(dot, ".h264") == 0);
+        int is_txt = (strcasecmp(dot, ".txt") == 0);
+        int is_pcm = (strcasecmp(dot, ".pcm") == 0);
         
-        if (!is_jpg && !is_h264) {
+        if (!is_jpg && !is_h264 && !is_txt && !is_pcm) {
             continue;
         }
         
@@ -615,11 +624,30 @@ static int send_single_file_streaming(int client_fd, const char *file_path) {
         return -1;
     }
 
-    // 流式读取和发送
+    // 流式读取和发送（带ACK确认）
     size_t total_sent = 0;
     while ((bytes_read = fread(buffer, 1, IMAGE_CHUNK_SIZE, fp)) > 0 && !gRecorderExit) {
+        // 发送数据块
         if (socket_send_message(client_fd, MSG_IMAGE_DATA, buffer, bytes_read) != 0) {
             printf("❌ [FILE] 发送文件块 %d 失败\n", chunk_count);
+            fclose(fp);
+            return -1;
+        }
+        
+        // 等待接收端确认当前数据块
+        unsigned char chunk_ack_type;
+        char chunk_ack_buffer[64];
+        unsigned int chunk_ack_len;
+        
+        if (socket_receive_message(client_fd, &chunk_ack_type, chunk_ack_buffer, 
+                                   &chunk_ack_len, sizeof(chunk_ack_buffer)) != 0) {
+            printf("❌ [FILE] 等待数据块 %d 确认超时\n", chunk_count);
+            fclose(fp);
+            return -1;
+        }
+        
+        if (chunk_ack_type != MSG_IMAGE_ACK) {
+            printf("❌ [FILE] 数据块 %d 收到错误的确认类型: 0x%02X\n", chunk_count, chunk_ack_type);
             fclose(fp);
             return -1;
         }
